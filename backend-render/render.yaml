@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: math-teacher-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: N8N_WEBHOOK_URL
+        value: https://your-n8n-app.onrender.com/webhook/webhook-trigger
+    healthCheckPath: /health
+    plan: starter
+
+

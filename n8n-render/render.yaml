@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: n8n-math-teacher
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: true
+      - key: N8N_BASIC_AUTH_USER
+        value: admin
+      - key: N8N_BASIC_AUTH_PASSWORD
+        generateValue: true
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true
+      - key: WEBHOOK_URL
+        value: https://n8n-math-teacher.onrender.com
+      - key: N8N_METRICS
+        value: false
+      - key: N8N_LOG_LEVEL
+        value: info
+    healthCheckPath: /healthz
+    plan: starter
+
+

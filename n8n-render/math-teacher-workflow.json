@@ -1,0 +1,260 @@
+{
+  "name": "Math Teacher Web Interface",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-trigger",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "webhook-trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "audio-condition",
+              "leftValue": "={{ $json.data.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-message-type",
+      "name": "Check Message Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "operation": "speechToText",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "id": "transcribe-audio",
+      "name": "Transcribe Audio",
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "elevenlabs-credentials",
+          "name": "ElevenLabs API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}, {{ $json.result.file_id }}",
+        "options": {
+          "systemMessage": "You are a helpful math teacher assistant. Be friendly, encouraging, and provide clear explanations. Help students understand mathematical concepts step by step."
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Math Teacher",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "openai-model",
+      "name": "OpenAI Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [900, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "math-teacher-session",
+        "contextWindowLength": 10
+      },
+      "id": "memory",
+      "name": "Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [900, 700]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.output }}",
+        "voice": "nova",
+        "options": {}
+      },
+      "id": "generate-audio",
+      "name": "Generate Audio Response",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1120, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "https://your-backend-url.onrender.com/webhook/n8n-response",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "name": "audio",
+              "value": "={{ $json.audio }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-response",
+      "name": "Send Response to Web App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Message Type": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Math Teacher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "AI Math Teacher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Math Teacher": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Response to Web App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Math Teacher",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Math Teacher",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response to Web App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
+
